@@ -124,7 +124,7 @@ def wait_time(error_message):
     for s in error_message.split():
         if s.isdigit():
             print('waiting for {} minute(s)'.format(s))
-            return int(s) * 60
+            return int(s) * 60 + 10
 
 
 def main():
