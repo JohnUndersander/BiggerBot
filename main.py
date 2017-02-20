@@ -12,19 +12,7 @@ import praw
 import json
 import time
 
-
-with open('secrets.json') as f:
-    auth = json.load(f)
-
-
-reddit = praw.Reddit(user_agent=auth['user_agent'],
-                     client_id=auth['client_id'], client_secret=auth['client_secret'],
-                     username=auth['username'], password=auth['password'])
-
-
 TARGET_SUBREDDIT = 'test'
-
-
 DATABASE = 'database.txt'
 
 
@@ -32,7 +20,7 @@ Picture = namedtuple('Picture', ['width', 'height', 'url'])
 
 
 def original_size(target):
-    response = requests.get(target, headers={'User-Agent': 'Chrome/52'})
+    response = requests.get(target, headers={'User-Agent': 'Chrome/56'})
     image = Image.open(BytesIO(response.content))
     return image.size
 
@@ -74,6 +62,7 @@ def get_bigger(smaller):
         if count == 5:
             break
 
+    driver.quit()
     return bigger
 
 
@@ -128,6 +117,15 @@ def wait_time(error_message):
 
 
 def main():
+    with open('secrets.json') as f:
+        auth = json.load(f)
+
+    reddit = praw.Reddit(user_agent=auth['user_agent'],
+                         client_id=auth['client_id'],
+                         client_secret=auth['client_secret'],
+                         username=auth['username'],
+                         password=auth['password'])
+
     subreddit = reddit.subreddit(TARGET_SUBREDDIT)
     comments = subreddit.stream.comments()
     while True:
