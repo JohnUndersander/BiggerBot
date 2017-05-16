@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from praw.exceptions import APIException
 from collections import namedtuple
 from selenium import webdriver
+from contextlib import closing
 from io import BytesIO
 from PIL import Image
 import requests
@@ -20,33 +21,12 @@ Picture = namedtuple('Picture', ['width', 'height', 'url'])
 
 
 def original_size(target):
-    response = requests.get(target, headers={'User-Agent': 'Chrome/56'})
+    response = requests.get(target, headers={'User-Agent': 'Chrome/58'})
     image = Image.open(BytesIO(response.content))
     return image.size
 
 
-def get_bigger(smaller):
-    bigger = []
-    driver = webdriver.Chrome()
-    driver.get('http://www.google.com/searchbyimage?image_url={}'.format(smaller.url))
-    try:
-        WebDriverWait(driver, timeout=10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, '_v6')))
-    except TimeoutException:
-        raise TimeoutException('Timed out while locating size links.')
-
-    size_links = driver.find_element_by_class_name('_v6')
-    try:
-        all_sizes = size_links.find_element_by_xpath('span[@class="gl"]')
-    except NoSuchElementException:
-        return bigger
-
-    all_sizes.click()
-    try:
-        WebDriverWait(driver, timeout=10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'rg_meta')))
-    except TimeoutException:
-        raise TimeoutException('Timed out while locating image json.')
-
-    results = driver.find_elements_by_class_name('rg_meta')
+def process(results, bigger, smaller):
     prev_w = 0
     prev_h = 0
     count = 0
@@ -62,25 +42,52 @@ def get_bigger(smaller):
         if count == 5:
             break
 
-    driver.quit()
+    return bigger
+
+
+def get_bigger(smaller):
+    bigger = []
+    with closing(webdriver.Chrome()) as driver:
+        driver.get(f'http://www.google.com/searchbyimage?image_url={smaller.url}')
+        try:
+            WebDriverWait(driver, timeout=10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, '_v6')))
+        except TimeoutException:
+            raise TimeoutException('Timed out while locating size links')
+
+        size_links = driver.find_element_by_class_name('_v6')
+        try:
+            all_sizes = size_links.find_element_by_xpath('span[@class="gl"]')
+        except NoSuchElementException:
+            return bigger
+
+        all_sizes.click()
+        try:
+            WebDriverWait(driver, timeout=10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'rg_meta')))
+        except TimeoutException:
+            raise TimeoutException('Timed out while locating image json')
+
+        results = driver.find_elements_by_class_name('rg_meta')
+        bigger = process(results, bigger, smaller)
+
     return bigger
 
 
 def links(bigger, smaller):
     if bigger:
         if len(bigger) > 1:
-            return 'I found some bigger than the original size! ({}x{})\n\n{}'.format(smaller.width, smaller.height, make_links(bigger))
+            amount = 'one'
         else:
-            return 'I found one bigger than the original size! ({}x{})\n\n{}'.format(smaller.width, smaller.height, make_links(bigger))
+            amount = 'some'
+        return f'I found {amount} bigger than the original size! ({smaller.width}x{smaller.height})\n\n{make_links(bigger)}'
     else:
         return "I'm sorry, I couldn't find anything bigger."
 
 
 def make_links(pictures):
     if len(pictures) > 1:
-        return '\n\n'.join('[{}x{}]({})'.format(p.width, p.height, p.url) for p in pictures)
+        return '\n\n'.join(f'[{p.width}x{p.height}]({p.url})' for p in pictures)
     else:
-        return '[{}x{}]({})'.format(pictures[0].width, pictures[0].height, pictures[0].url)
+        return f'[{pictures[0].width}x{pictures[0].height}]({pictures[0].url})'
 
 
 def message(comment):
@@ -112,7 +119,7 @@ def replied_to(utc):
 def wait_time(error_message):
     for s in error_message.split():
         if s.isdigit():
-            print('waiting for {} minute(s)'.format(s))
+            print(f'waiting for {s} minute(s)')
             return int(s) * 60 + 10
 
 
