@@ -75,9 +75,10 @@ def get_bigger(smaller):
 def links(bigger, smaller):
     if bigger:
         if len(bigger) > 1:
-            amount = 'one'
-        else:
             amount = 'some'
+        else:
+            amount = 'one'
+
         return f'I found {amount} bigger than the original size! ({smaller.width}x{smaller.height})\n\n{make_links(bigger)}'
     else:
         return "I'm sorry, I couldn't find anything bigger."
@@ -134,19 +135,18 @@ def main():
                          password=auth['password'])
 
     subreddit = reddit.subreddit(TARGET_SUBREDDIT)
-    comments = subreddit.stream.comments()
-    while True:
-        for comment in comments:
-            if 'BiggerPlease!' in comment.body and not replied_to(comment.created_utc):
-                success = False
-                while not success:
-                    try:
-                        comment.reply(message(comment))
-                        success = True
-                    except APIException as e:
-                        time.sleep(wait_time(e.message))
 
-                save_stamp(comment.created_utc)
+    for comment in subreddit.stream.comments():
+        if 'BiggerPlease!' in comment.body and not replied_to(comment.created_utc):
+            success = False
+            while not success:
+                try:
+                    comment.reply(message(comment))
+                    success = True
+                except APIException as e:
+                    time.sleep(wait_time(e.message))
+
+            save_stamp(comment.created_utc)
 
 
 if __name__ == '__main__':
