@@ -1,0 +1,4 @@
+praw==5.1.0
+requests==2.18.4
+selenium==3.5.0
+Pillow==4.2.1
