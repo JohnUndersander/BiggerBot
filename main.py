@@ -31,15 +31,11 @@ def process(results, bigger, smaller):
 	count = 0
 	for result in results:
 		data = json.loads(result.get_attribute("innerHTML"))
-		if (data['ow'] != prev_w and
-            data['oh'] != prev_h and
-            data['ow'] > smaller.width and
-            data['oh'] > smaller.height and
-            count < 5):
-				prev_w = data['ow']
-				prev_h = data['oh']
-				bigger.append(Picture(data['ow'], data['oh'], data['ou']))
-				count += 1
+		if data['ow'] != prev_w and data['oh'] != prev_h and data['ow'] > smaller.width and data['oh'] > smaller.height and count < 5:
+			prev_w = data['ow']
+			prev_h = data['oh']
+			bigger.append(Picture(data['ow'], data['oh'], data['ou']))
+			count += 1
 		else:
 			break
 
